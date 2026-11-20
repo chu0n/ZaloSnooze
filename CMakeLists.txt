@@ -1,0 +1,38 @@
+cmake_minimum_required(VERSION 3.20)
+project(ZaloSnooze VERSION 1.0.0 LANGUAGES CXX RC)
+if(NOT WIN32 OR NOT MINGW)
+  message(FATAL_ERROR "Use MSYS2 MINGW32 GCC. See docs/DEVELOPMENT.md.")
+endif()
+if(NOT CMAKE_SIZEOF_VOID_P EQUAL 4)
+  message(FATAL_ERROR "Release builds must be x86. Use the MINGW32 toolchain, not UCRT64.")
+endif()
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+set(ZALOSNOOZE_PROJECT_URL "" CACHE STRING "Official HTTPS GitHub repository URL")
+configure_file(src/version.h.in generated/version.h @ONLY)
+add_library(snooze_core STATIC src/core.cpp src/watcher.cpp src/startup.cpp)
+target_include_directories(snooze_core PUBLIC src "${CMAKE_CURRENT_BINARY_DIR}/generated")
+target_compile_definitions(snooze_core PUBLIC UNICODE _UNICODE WINVER=0x0A00 _WIN32_WINNT=0x0A00 NOMINMAX)
+target_compile_options(snooze_core PUBLIC -Wall -Wextra -Wpedantic -finput-charset=UTF-8 -fexec-charset=UTF-8)
+target_link_libraries(snooze_core PUBLIC user32 shell32 ole32 oleaut32 uuid advapi32 taskschd comctl32 comdlg32 gdi32)
+add_executable(ZaloSnooze WIN32 src/main.cpp src/gui.cpp resources/app.rc)
+set_property(SOURCE resources/app.rc APPEND PROPERTY OBJECT_DEPENDS
+  "${CMAKE_CURRENT_SOURCE_DIR}/resources/resource.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/resources/app.manifest"
+  "${CMAKE_CURRENT_BINARY_DIR}/generated/version.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/docs/assets/logo.ico"
+  "${CMAKE_CURRENT_SOURCE_DIR}/docs/assets/app-banner.en.bmp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/docs/assets/app-banner.vi.bmp")
+target_include_directories(ZaloSnooze PRIVATE resources)
+target_link_libraries(ZaloSnooze PRIVATE snooze_core)
+target_link_options(ZaloSnooze PRIVATE -municode -static -static-libgcc -static-libstdc++ -Wl,--nxcompat,--dynamicbase)
+enable_testing()
+add_executable(snooze_tests .dev/tests/native_tests.cpp src/gui.cpp resources/app.rc)
+target_link_libraries(snooze_tests PRIVATE snooze_core)
+target_link_options(snooze_tests PRIVATE -municode -static -static-libgcc -static-libstdc++)
+add_test(NAME native COMMAND snooze_tests)
+add_executable(tray_fixture WIN32 .dev/tests/tray_fixture.cpp)
+target_compile_definitions(tray_fixture PRIVATE UNICODE _UNICODE NOMINMAX)
+target_link_options(tray_fixture PRIVATE -municode -static -static-libgcc -static-libstdc++)
+target_link_libraries(tray_fixture PRIVATE user32 shell32)

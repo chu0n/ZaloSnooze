@@ -1,0 +1,42 @@
+ZaloSnooze portable
+
+1. Extract the whole ZaloSnooze folder to a writable location.
+2. Run ZaloSnooze.exe. No installation or extra runtime is needed.
+3. Enable automatic startup once, approve any proposed handoff, then close the window.
+   At future Windows sign-ins, the helper starts Zalo in its tray, or minimizes
+   it to the taskbar when the checkbox below the main button is enabled, and exits.
+   If Windows starts offline, the helper waits for Windows-reported Internet
+   access before launching Zalo. The observation limit starts afterward.
+   Disable startup to cancel the wait; it has no fixed offline timeout.
+
+ZaloSnooze.ini is included and stays beside the executable.
+Keep the whole folder when moving the application. Re-register startup after
+moving it; startup registration belongs to the current Windows account and PC.
+Enabling startup explicitly changes Windows settings. Disabling it restores
+Zalo startup entries that this copy changed, where safe.
+If Windows disabled startup, use Tools > Windows startup settings to re-enable it.
+The helper never overrides Windows' approval choice. Unknown approval opens those
+settings without changing registration; disabled owned registration can be removed.
+Run startup setup and recovery without administrator rights. Close other editors
+using the same configuration before command-line setup. Invalid settings remain
+repairable through Tools > Experimental.
+Machine-specific startup backups live under Local AppData, not on your USB drive.
+
+Full Zalo paths appear on main, with gear and folder icons to manage/open locations.
+Automatic detection, custom paths, and multiple installations remain supported.
+Tools > Experimental opens technical options; choose Save to apply or Cancel to discard.
+Tools > Restore Zalo startup disables this helper's startup and restores owned backups
+after confirmation. It is disabled when this copy has no backup.
+Defaults work for normal use. Logging is off by default; enabling it writes a log
+beside the configuration. Experimental opacity suppression is off by default.
+
+This is a one-shot helper, not a service or a privacy tool. A brief window flash
+is still possible. ARM64 operation uses Windows x86 emulation and needs testing.
+After the helper exits, later Wi-Fi reconnects or laptop resumes are not watched.
+If Windows cannot report Internet status, normal bounded observation is used.
+
+Help > Check for updates opens the configured official release page. This build
+may have no project URL configured. No background updater is installed.
+
+Tieng Viet: Giai nen ca thu muc, chay ZaloSnooze.exe. Cau hinh ZaloSnooze.ini
+nam canh EXE. Chon ngon ngu Tieng Viet trong menu Language / Ngon ngu.

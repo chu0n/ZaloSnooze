@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title id="title">ZaloSnooze: corner-anchored rising Zs</title>
+  <defs>
+    <path id="z" d="M4 0H96Q100 0 100 4V21Q100 23 98 25L41 74H96Q100 74 100 78V96Q100 100 96 100H4Q0 100 0 96V79Q0 77 2 75L59 26H4Q0 26 0 22V4Q0 0 4 0Z"/>
+  </defs>
+  <!-- Small corner radii and light corner overlap preserve three distinct letters. -->
+  <g transform="translate(-14 -100) scale(1.26)">
+    <path d="M112 160h192c49 0 78 29 78 76v96c0 45-28 73-75 73h-79l-64 48 5-48h-57c-46 0-73-28-73-73v-96c0-47 27-76 73-76Z" fill="#fffdf6" stroke="#18345b" stroke-width="10" stroke-linejoin="round"/>
+    <g transform="rotate(-4 210 283)">
+      <use href="#z" fill="#0068ff" transform="translate(130 208) scale(1.6 1.5)"/>
+    </g>
+    <g transform="translate(278.608 209.034) rotate(10) scale(.7) translate(-12 -90)">
+      <use href="#z" fill="#fffdf6" stroke="#18345b" stroke-width="8" stroke-linejoin="round" paint-order="stroke fill"/>
+    </g>
+    <g transform="translate(346.97 159.96) rotate(19) scale(.43) translate(-12 -90)">
+      <use href="#z" fill="#ffda72" stroke="#18345b" stroke-width="10" stroke-linejoin="round" paint-order="stroke fill"/>
+    </g>
+  </g>
+</svg>
