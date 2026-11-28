@@ -34,7 +34,7 @@ Run from a Windows interactive desktop after installing the tools in [Developmen
 ```powershell
 .\.dev\build.ps1
 .\.dev\test.ps1
-.\.dev\package.ps1 -Tag v1.0.0
+.\.dev\package.ps1 -Tag v1.0.1
 .\.dev\tests\installer-smoke.ps1
 .\.dev\tests\release-smoke.ps1
 ```

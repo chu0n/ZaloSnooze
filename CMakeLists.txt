@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(ZaloSnooze VERSION 1.0.0 LANGUAGES CXX RC)
+project(ZaloSnooze VERSION 1.0.1 LANGUAGES CXX RC)
 if(NOT WIN32 OR NOT MINGW)
   message(FATAL_ERROR "Use MSYS2 MINGW32 GCC. See docs/DEVELOPMENT.md.")
 endif()

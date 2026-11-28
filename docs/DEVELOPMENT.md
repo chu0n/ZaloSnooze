@@ -52,7 +52,7 @@ Local builds link to the official project by default. GitHub Actions uses the re
 .\.dev\build.ps1 -Msys2Root 'C:\msys64' -ProjectUrl 'https://github.com/chu0n/ZaloSnooze'
 ```
 
-Keep the version unchanged until the initial source upload is confirmed. See [repository rules](../AGENTS.md).
+`CMakeLists.txt` is the single source of truth for the version: the packages, the installer, and the executable read it from there. See [repository rules](../AGENTS.md).
 
 ## Maintenance
 
