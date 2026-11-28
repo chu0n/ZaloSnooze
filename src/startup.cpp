@@ -400,6 +400,29 @@ StartupState approval(const wchar_t* bucket) {
         return StartupState::On;
     return StartupState::Unknown;
 }
+void set_approval(bool enabled) {
+    DWORD state = enabled ? 2 : 3;
+    std::array<BYTE, 12> data{};
+    memcpy(data.data(), &state, sizeof(state));
+    FILETIME now{};
+    GetSystemTimeAsFileTime(&now);
+    memcpy(data.data() + sizeof(state), &now, sizeof(now));
+    for (const wchar_t* bucket : {L"Run", L"Run32"}) {
+        auto path =
+            std::wstring(L"Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Explorer\\\\StartupApproved\\\\") +
+            bucket;
+        HKEY key = nullptr;
+        auto status = RegCreateKeyExW(HKEY_CURRENT_USER, path.c_str(), 0, nullptr, 0,
+                                      KEY_SET_VALUE | KEY_WOW64_64KEY, nullptr, &key, nullptr);
+        if (status != ERROR_SUCCESS)
+            fail(error_text(L"Open Windows startup approval", status));
+        status = RegSetValueExW(key, L"ZaloSnooze", 0, REG_BINARY, data.data(),
+                                static_cast<DWORD>(data.size()));
+        RegCloseKey(key);
+        if (status != ERROR_SUCCESS)
+            fail(error_text(L"Change Windows startup approval", status));
+    }
+}
 } // namespace
 fs::path startup_folder() {
     PWSTR p = nullptr;
@@ -801,12 +824,15 @@ void apply_startup(const Paths& paths, Config& config, bool enabled,
     updated.save(paths.config);
     try {
         set_startup(paths, enabled);
-        if (enabled && !handoff.empty()) {
-            if (!startup_enabled(paths))
-                fail(L"Windows has not enabled ZaloSnooze startup. Zalo's startup entries were "
-                     L"left unchanged. Check Windows Settings > Apps > Startup.");
+        set_approval(enabled);
+        if (enabled && !startup_enabled(paths))
+            fail(handoff.empty()
+                     ? L"Windows has not enabled ZaloSnooze startup. Check Windows Settings > Apps > "
+                       L"Startup."
+                     : L"Windows has not enabled ZaloSnooze startup. Zalo's startup entries were "
+                       L"left unchanged. Check Windows Settings > Apps > Startup.");
+        if (enabled && !handoff.empty())
             disable_zalo_startup(paths, handoff);
-        }
         if (!enabled && startup_backup_exists(paths))
             restore_zalo_startup(paths, startup_folder());
     } catch (...) {

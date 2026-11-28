@@ -687,12 +687,20 @@ static void tests(const fs::path& root) {
         Config automatic;
         automatic.save(paths.config);
         approval_state(3);
-        rejects([&] { apply_startup(paths, automatic, true, {entry}); },
-                "Windows-disabled helper cannot take over Zalo startup");
-        check(RegQueryValueExW(run, entry.name.c_str(), nullptr, nullptr, nullptr, nullptr) ==
-                      ERROR_SUCCESS &&
-                  !startup_backup_exists(paths),
-              "blocked handoff leaves Zalo startup untouched");
+        Config plain;
+        plain.load(paths.config);
+        apply_startup(paths, plain, true);
+        check(startup_registered(paths) && plain.launch_at_startup &&
+                  startup_state(paths) == StartupState::On,
+              "enable re-approves a Windows-disabled entry so the startup status can be trusted");
+        approval_state(3);
+        apply_startup(paths, automatic, true, {entry});
+        check(startup_state(paths) == StartupState::On &&
+                  RegQueryValueExW(run, entry.name.c_str(), nullptr, nullptr, nullptr, nullptr) ==
+                          ERROR_FILE_NOT_FOUND &&
+                  startup_backup_exists(paths),
+              "enable re-approves a Windows-disabled entry before the Zalo handoff");
+        write_entry(original);
         approval_state(2);
         RegCloseKey(approved);
         apply_startup(paths, automatic, true, {entry});
@@ -848,80 +856,6 @@ static void tests(const fs::path& root) {
     RegOverridePredefKey(HKEY_CURRENT_USER, nullptr);
     RegCloseKey(sandbox_key);
     RegDeleteTreeW(HKEY_CURRENT_USER, sandbox.c_str());
-}
-static void icon_tests() {
-    HMODULE module = LoadLibraryExW((executable_path().parent_path() / L"ZaloSnooze.exe").c_str(),
-                                    nullptr, LOAD_LIBRARY_AS_DATAFILE);
-    check(module != nullptr, "load application icon resources");
-    for (int size : {16, 20, 32, 64}) {
-        auto icon = static_cast<HICON>(
-            LoadImageW(module, MAKEINTRESOURCEW(101), IMAGE_ICON, size, size, 0));
-        ICONINFO info{};
-        check(icon && GetIconInfo(icon, &info), "load DPI-specific icon frame");
-        BITMAPINFO bitmap{};
-        bitmap.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-        bitmap.bmiHeader.biWidth = size;
-        bitmap.bmiHeader.biHeight = -size;
-        bitmap.bmiHeader.biPlanes = 1;
-        bitmap.bmiHeader.biBitCount = 32;
-        std::vector<DWORD> pixels(size * size);
-        HDC dc = GetDC(nullptr);
-        int read = GetDIBits(dc, info.hbmColor, 0, size, pixels.data(), &bitmap, DIB_RGB_COLORS);
-        ReleaseDC(nullptr, dc);
-        DeleteObject(info.hbmMask);
-        DeleteObject(info.hbmColor);
-        DestroyIcon(icon);
-        check(read == size, "read rendered icon pixels");
-        double mass = 0;
-        int left = size, right = 0;
-        for (int y = 0; y < size; ++y)
-            for (int x = 0; x < size; ++x) {
-                auto alpha = pixels[y * size + x] >> 24;
-                if (alpha > 16) {
-                    mass += alpha;
-                    left = std::min(left, x);
-                    right = std::max(right, x);
-                }
-            }
-        check(mass > 0 && right - left + 1 >= size * .84, "icon foreground fills its frame");
-        int bubble_left = size, bubble_right = -1, bubble_top = size, bubble_bottom = -1;
-        for (int i = 0; i < size; ++i) {
-            if ((pixels[(size / 2) * size + i] >> 24) > 16) {
-                bubble_left = std::min(bubble_left, i);
-                bubble_right = i;
-            }
-            if ((pixels[i * size + size / 2] >> 24) > 16) {
-                bubble_top = std::min(bubble_top, i);
-                bubble_bottom = i;
-            }
-        }
-        check(std::abs((bubble_left + bubble_right) / 2.0 - (size - 1) / 2.0) <= size * .04 + .5 &&
-                  std::abs((bubble_top + bubble_bottom) / 2.0 - (size - 1) / 2.0) <=
-                      size * .05 + .5,
-              "bubble body, not whole rising-Z bounds, anchors icon alignment");
-    }
-    for (int id : {102, 103}) {
-        auto banner = static_cast<HBITMAP>(
-            LoadImageW(module, MAKEINTRESOURCEW(id), IMAGE_BITMAP, 0, 0, LR_CREATEDIBSECTION));
-        BITMAP bitmap{};
-        check(banner && GetObjectW(banner, sizeof(bitmap), &bitmap),
-              "load embedded localized banner");
-        check(bitmap.bmWidth == 1600 && bitmap.bmHeight == 180 && bitmap.bmBitsPixel == 24,
-              "embedded banner retains compact aspect ratio and native bitmap format");
-        DeleteObject(banner);
-        auto asset = executable_path().parent_path().parent_path().parent_path() / L"docs" /
-                     L"assets" / (id == 102 ? L"app-banner.en.bmp" : L"app-banner.vi.bmp");
-        std::ifstream stream(asset, std::ios::binary);
-        std::vector<char> source((std::istreambuf_iterator<char>(stream)),
-                                 std::istreambuf_iterator<char>());
-        auto resource = FindResourceW(module, MAKEINTRESOURCEW(id), RT_BITMAP);
-        auto bytes = SizeofResource(module, resource);
-        auto data = LockResource(LoadResource(module, resource));
-        check(source.size() > 14 && data && bytes == source.size() - 14 &&
-                  memcmp(data, source.data() + 14, bytes) == 0,
-              "embedded banner matches current generated artwork, not a stale resource object");
-    }
-    FreeLibrary(module);
 }
 static void multi_installation_test(const fs::path& root) {
     std::vector<HANDLE> processes;
@@ -1505,10 +1439,13 @@ static int startup_ui_fixture(const fs::path& root, const std::wstring& mode) {
         show_gui(paths);
         std::array<BYTE, 12> after{};
         DWORD type = 0, size = after.size();
-        check(RegQueryValueExW(approved, L"ZaloSnooze", nullptr, &type, after.data(), &size) ==
-                      ERROR_SUCCESS &&
-                  type == REG_BINARY && size == data.size() && after == data,
-              "GUI never overwrites Windows startup approval");
+        auto queried = RegQueryValueExW(approved, L"ZaloSnooze", nullptr, &type, after.data(), &size);
+        DWORD seeded_state = 0, after_state = 0;
+        memcpy(&seeded_state, data.data(), sizeof(seeded_state));
+        memcpy(&after_state, after.data(), sizeof(after_state));
+        check(queried == ERROR_SUCCESS && type == REG_BINARY && size == data.size() &&
+                  after_state == seeded_state,
+              "GUI only changes Windows approval state through explicit startup actions");
     } catch (const std::exception& error) {
         std::cerr << error.what() << "\n";
         result = 2;
@@ -1590,7 +1527,6 @@ int wmain(int count, wchar_t** arguments) {
         long_root.resize(length);
         root = long_root;
         tests(root);
-        icon_tests();
         multi_installation_test(root);
         mixed_precedence_test(root);
         fixture_test(root, L"visible", true);

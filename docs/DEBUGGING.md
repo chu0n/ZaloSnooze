@@ -21,7 +21,7 @@ Never use broad process-name kill commands for test cleanup. Native tests hold h
 ## Startup troubleshooting
 
 - The metadata shows this copy's registration and Windows approval: On, Off, Disabled by Windows, or Unknown.
-- Use Tools → Windows startup settings to inspect approval. Re-enable a Windows-disabled entry there; the app never rewrites approval.
+- Use Tools → Windows startup settings to inspect approval. The startup button also rewrites the app's own approval record, so enabling in ZaloSnooze re-enables the entry in Task Manager / Settings > Startup apps, and the metadata stays truthful.
 - Return to the app to refresh approval. Unknown state does not silently enable or replace registration.
 - A copied INI does not enable startup on a new PC.
 - If another copy owns registration, disable it there first.

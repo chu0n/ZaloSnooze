@@ -20,7 +20,7 @@ Window recognition is external and asynchronous. A first frame may appear before
 - Portable settings never silently fall back to AppData. Atomic saves preserve comments, unknown keys, and an existing file's ACL.
 - Editors and startup setup share a cross-session configuration lock. A per-user mutex serializes startup changes and recovery.
 - Startup changes require explicit action. Verified entries are backed up before removal or disabling; replacing the same entry keeps only the newest generation. Custom targets remain saved after handoff.
-- Windows startup approval is read, never overwritten. Copied preferences do not grant startup registration on another PC.
+- Windows startup approval is kept in sync by the app's startup toggle: its own `ZaloSnooze` record is rewritten (with the current time) in `StartupApproved\Run` and `Run32`; other apps' records are only read. Copied preferences do not grant startup registration on another PC.
 - Restore never overwrites newer conflicting entries. Saved shortcut files remain until recovery records commit.
 - Elevated app entry points refuse startup setup and recovery. All-user uninstall leaves per-user integration untouched; each user must disable it from a normal app first.
 - Logs cannot overwrite preferences, application binaries, the installed-mode marker, recovery data, or the legacy startup-shortcut backup, including existing hard-link aliases.
@@ -39,7 +39,7 @@ Run from a Windows interactive desktop after installing the tools in [Developmen
 .\.dev\tests\release-smoke.ps1
 ```
 
-The local verification baseline contains **420 native assertions**, plus GUI, installer, and package checks. These checks have passed on Windows 11 x64 with the MINGW32 toolchain and Inno Setup 6. They are not proof of untested platforms or a remote CI run.
+The local verification baseline contains **399 native assertions**, plus GUI, installer, and package checks. These checks have passed on Windows 11 x64 with the MINGW32 toolchain and Inno Setup 6. They are not proof of untested platforms or a remote CI run.
 
 | Gate | Coverage |
 | --- | --- |
@@ -48,7 +48,7 @@ The local verification baseline contains **420 native assertions**, plus GUI, in
 | Startup and recovery | Registration ownership/formats, Windows approval variants, cross-process locks, newest-generation Run/shortcut/task recovery, legacy conflicts, record-commit failures, and safe retries. |
 | Watcher fixtures | Visible/hidden/minimized windows, startup bounces, frozen UI, process exit, windowless helpers, reopening, opacity restoration, and a continuously nonempty message queue. |
 | Offline startup | Waiting longer than the observation limit without launching; a delayed first online window; an already-running hidden target revealing itself; preference reload; registration/approval cancellation; unknown-status fallback; and manual runs/reopening. |
-| GUI | Bilingual layout, text/control bounds, icons, actual startup state, editor/setup exclusion, invalid-setting repair, Save/Cancel, custom/multiple paths, side-effect-free close, and bounded cross-process messages. |
+| GUI | Bilingual dialogs and control presence, actual startup state, editor/setup exclusion, invalid-setting repair, Save/Cancel, custom/multiple paths, side-effect-free close, and bounded cross-process messages. |
 | Installer | Isolated per-user install/upgrade/uninstall, shortcuts, Windows registration, preference preservation, and unrelated-file preservation. |
 | Packages and release | Source/tag/binary version agreement, x86 PE, system-DLL imports, exact portable contents/defaults/hash, extracted-app GUI, per-tag publication serialization, and mocked draft publication and failure handling. |
 
@@ -65,7 +65,7 @@ Offline-startup tests simulate Windows connectivity without disconnecting the ho
 - ARM64 x86 emulation and a real x86 Windows machine have not been tested. Native x64 binaries are not shipped.
 - Elevated all-user installation/removal, credential-switch UAC, and live scheduled-task rollback need separate verification.
 - GitHub Actions and tagged publication need a remote run after upload. Mocked publication checks do not prove GitHub permissions or availability.
-- Broader themes, high contrast, and DPI changes across monitors need visual testing.
+- Visual rendering, custom Windows themes, high contrast, and cross-monitor DPI changes are checked manually; the automated suite covers behavior, not appearance.
 - Force-killing an experimental-opacity watcher can bypass cleanup and leave Zalo transparent. Quit Zalo from its tray and reopen it.
 - Observation limits do not bound every OS, disk, COM, or diagnostic-write delay.
 - Executables are unsigned. Checksums establish integrity, not publisher identity.

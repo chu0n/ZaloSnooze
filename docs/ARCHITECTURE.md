@@ -64,7 +64,7 @@ Opacity changes are optional, off by default, and limited to existing readable g
 
 Startup registration is per user, even for a machine-wide install. The app must not silently replace another copy's registration. Saved `LaunchAtStartup` is not proof that Windows startup is enabled.
 
-Read owned registration separately from Windows approval. Strict `REG_SZ`/`REG_EXPAND_SZ` parsing rejects unsupported or malformed values without overwriting them. Native-view `StartupApproved\Run` and `Run32` records distinguish enabled, disabled, and unknown approval. Never write approval records. The UI refreshes on activation and links to Windows startup settings; uninstall checks ownership even when Windows disabled startup.
+Read owned registration separately from Windows approval. Strict `REG_SZ`/`REG_EXPAND_SZ` parsing rejects unsupported or malformed values without overwriting them. Native-view `StartupApproved\Run` and `Run32` records distinguish enabled, disabled, and unknown approval. The app's own startup toggle rewrites only its `ZaloSnooze` approval record (enabled or disabled, timestamped) in both buckets, so Task Manager and Settings > Startup apps reflect the app's choice; other approval records are only read. The UI refreshes on activation and links to Windows startup settings; uninstall checks ownership even when Windows disabled startup.
 
 A fail-fast, recursive `Global\ZaloSnooze.Startup.<user SID>` mutex serializes startup mutations across copies and sessions, including public mutation functions and uninstall recovery. Keep consent prompts outside the mutation lock. Reload preferences under the lock, then pin auto-detected custom paths before removing their discovery entries. Standard installations remain automatic.
 
